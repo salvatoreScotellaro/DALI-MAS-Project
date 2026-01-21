@@ -26,7 +26,7 @@ GAIA metholody is followed, according to what's written on the paper written to 
 ### 2.1 Analysis Phase
 The first phase is the analysis phase, which is in turn divided into two major sub-phases: the roles identification and the protocols identification. Both are discussed here below.
 
-#### 2.1.1.1 Roles Identification
+#### 2.1.1 Roles Identification
 
 | **Role Schema:** | QuizNotary |
 |---|---|
@@ -54,7 +54,7 @@ The first phase is the analysis phase, which is in turn divided into two major s
 | **Role Schema:** | QuizMaster |
 |---|---|
 | **Description:** | The master selects random questions from a pool of pre-defined ones, asks questions to competitors and checks if the answer is correct. It also orders points updates, informs competitors when game ends and asks for a new question when all participants give a wrong answer. |
-| **Protocols and Activities:** | askQuestion, checkAnswer, nextQuestion, notifyGameEnd, notifyPointsIncrease |
+| **Protocols and Activities:** | askQuestion, checkAnswer, notifyAnswerOutcome, nextQuestion, notifyGameEnd, notifyPointsIncrease |
 | **Permissions:** | |
 | reads | **supplied** *Participants* // List of participants to the game |
 | | **supplied** *Game State* // Current state of the game. It can be waiting, running or finished |
@@ -67,7 +67,7 @@ The first phase is the analysis phase, which is in turn divided into two major s
 | generates | *Question* // Selected question to ask and relative possible answers|
 | **Responsibilities** | |
 | **Liveness:** | |
-| | QuizMaster = (askQuestion. checkAnswer. (notifyCorrectAnswer. notifyPointsIncrease. | nextQuestion). notifyGameEnd)^ω |
+| | QuizMaster = (askQuestion. checkAnswer. notifyAnswerOutcome. (notifyPointsIncrease. | nextQuestion). notifyGameEnd)^ω |
 | **Safety:** | |
 | | • *Remaining Available Questions* ≥ 0 |
 | | • *Correct Answer per Question* = 1 |
@@ -123,13 +123,125 @@ The first phase is the analysis phase, which is in turn divided into two major s
 | | • *Remaining Answers* > 0 |
 | | • *Number of Remaining Answers* = *Pre-defined Number* |
 
-#### 2.1.1.1 Protocols Identification
+#### 2.1.2 Protocols Identification
 
-| JoinGame ||
+| **Protocol:** | Join Game |
 |---|---|
-| QuizParticipant | QuizNotary |
-| Quiz participant informs quiz notary that he wants to be included in the next game. ||
+| **Initiator:** | Quiz Participant |
+| **Responder:** | Quiz Notary |
+| **Inputs:** | Participant name |
+| **Outputs:** | Notary confirmation message |
+| **Processing:** | Add participant name to participants list |
+| **Description:** | Quiz participant informs quiz notary that he wants to be included in the next game. |
 
+| **Protocol:** | Start Game |
+|---|---|
+| **Initiator:** | Quiz Notary |
+| **Responder:** | All quiz agents |
+| **Inputs:** | Participants list |
+| **Outputs:** | Changed game state |
+| **Processing:** | Master, helpers and participants change game state to running |
+| **Description:** | Quiz notary informs all agents involved in the game that minimum number of participants has been reached, and so that the game is starting. |
+
+| **Protocol:** | End Game |
+|---|---|
+| **Initiator:** | Quiz Notary |
+| **Responder:** | All quiz agents |
+| **Inputs:** | Winner name or Game duration |
+| **Outputs:** | Changed game state and participants reactions |
+| **Processing:** | Master, helpers and participants change game state to finished |
+| **Description:** | Quiz notary informs all agents involved in the game that the game has ended, either because someone reached the winning threshold or because the maximum duration has been reached. If there is a winner, participants react to the game outcome |
+
+| **Protocol:** | Notify Answer Outcome |
+|---|---|
+| **Initiator:** | Quiz Master |
+| **Responder:** | Quiz Participant |
+| **Inputs:** | Answer correctness |
+| **Outputs:** | Participant reaction |
+| **Processing:** | Master checks whether the answer is correct or not |
+| **Description:** | Quiz master checks whether provided answer is correct or not and returns to the agent the outcome. Depending on this last participant reacts celebrating or waiting for next question |
+
+| **Protocol:** | Notify Points Increase |
+|---|---|
+| **Initiator:** | Quiz Master |
+| **Responder:** | Quiz Notary |
+| **Inputs:** | Participant name |
+| **Outputs:** | Participant points |
+| **Processing:** | Notary increases the points of the participant |
+| **Description:** | Quiz notary increases by one the points of the participant associated with the provided participant name |
+
+| **Protocol:** | Ask Question |
+|---|---|
+| **Initiator:** | Quiz Notary |
+| **Responder:** | Quiz Master and Participants |
+| **Inputs:** | List of participants |
+| **Outputs:** | Participants answers |
+| **Processing:** | Master generates a question and participants generate their answers |
+| **Description:** | Quiz notary asks the master to answer the next question providing the current list of participants. The master generates the question, with associated possible answers, and delivers it to participants. Finally, participants choose an answer which is returned to the master. |
+
+| **Protocol:** | Ask for Hint 1 |
+|---|---|
+| **Initiator:** | Quiz Participant |
+| **Responder:** | Quiz Notary and Quiz Helper 1 |
+| **Inputs:** | Current Question |
+| **Outputs:** | Correct Answer |
+| **Processing:** | Helper determines correct answer and notary deletes type 1 hint availability |
+| **Description:** | Quiz participant asks the notary to use its type 1 hint for the current question. Notary invokes the helper, which returns the correct answer to the participant. |
+
+| **Protocol:** | Ask for Hint 2 |
+|---|---|
+| **Initiator:** | Quiz Participant |
+| **Responder:** | Quiz Notary and Quiz Helper 2 |
+| **Inputs:** | Current Question and Answers |
+| **Outputs:** | Reduced Answers |
+| **Processing:** | Helper determines reduced answers and notary deletes type 2 hint availability |
+| **Description:** | Quiz participant asks the notary to use its type 2 hint for the current question. Notary invokes the helper, which returns the reduced set of possible answers to the participant |
+
+### 2.2 Design Phase
+The second phase is the design phase, which consists in defining three models for the system: the agent model, the services model and acquaintance model. All are discussed here below.
+
+#### 2.2.1 Agent Model
+
+- **Agent Types**
+    - One Type for each Role
+
+- **Agent Instances**
+    - **Quiz Notary**: 1
+    - **Quiz Master**: 1
+    - **Quiz Helper 1**: 1
+    - **Quiz Helper 2**: 1
+    - **Quiz Competitor**: +
+
+#### 2.2.2 Services Model
+| Service | Inputs | Outputs | Pre-condition | Post-condition |
+|---|---|---|---|---|
+| Update Participants | Participant name | Updated participants list | Participant name $\notin$ participants list | Participant name ∈ participants list |
+| Update Points | Participant Name | Updated points | Participant name ∈ participants list ∧ game state = running | Participant points = previous points + 1 |
+| Update Hint Availability | Participant name, hint type | Updated hint availability | Participant has hint of requested type available | Hint of requested type no longer available |
+| Check Win | Participants points | Winner name or nil | Game state = running | (Winner found ∧ winner points ≥ winning threshold) ∨ winner = nil |
+| Skip Question | Current question time | Question skipped signal | Current question time ≥ pre-defined threshold | aster receives signal to ask next question |
+| Choose Question | Available questions | Selected question, available answers | Remaining available questions > 0 ∧ game state = running | Question ∉ available questions ∧ available answers per question = pre-defined number |
+| Check Answer | Participant answer | Answer correctness (true/false) | Answer ∈ set of available answers ∧ game state = running | (Update points ∨ Wrong Answer) ∧ Current Answered = true |
+| Choose Answer | Available answers | Selected answer | Available answers > 0 ∧ game state = running | Selected answer ∈ available answers |
+| Determine Correct Answer | Current question | Correct answer | Correct answer is available ∧ game state = running | Returned answer = correct answer |
+| Determine Remaining Answers | Current question, available answers, correct answer | Reduced set of answers | Available answers = pre-defined number ∧ game state = running | Remaining answers = pre-defined number ∧ correct answer ∈ remaining answers |
+
+#### 2.2.3 Acquaintance Model
+```mermaid
+graph TD
+    A[quizNotary]
+    B[quizMaster]
+    C[quizHelper1]
+    D[quizHelper2]
+    E[quizCompetitor]
+    A --- B
+    A --- C
+    A --- D
+    A --- E
+    B --- E
+    C --- E
+    D --- E
+```
 
 ## 3. Dalia
 A containerized launcher with a GUI for multi-agent-systems written in [DALI](https://github.com/AAAI-DISIM-UnivAQ/DALI).
