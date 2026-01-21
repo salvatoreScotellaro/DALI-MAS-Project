@@ -13,6 +13,16 @@ question(question7).
 question(question8).
 question(question9).
 question(question10).
+question(question11).
+question(question12).
+question(question13).
+question(question14).
+question(question15).
+question(question16).
+question(question17).
+question(question18).
+question(question19).
+question(question20).
 :- write('Questions loaded.'), nl.
 
 /* Initialize Available Quiz Answers */
@@ -26,6 +36,16 @@ answer(answer7).
 answer(answer8).
 answer(answer9).
 answer(answer10).
+answer(answer11).
+answer(answer12).
+answer(answer13).
+answer(answer14).
+answer(answer15).
+answer(answer16).
+answer(answer17).
+answer(answer18).
+answer(answer19).
+answer(answer20).
 :- write('Answers loaded.'), nl.
 
 /* Initialize Correct Quiz Correspondences */
@@ -39,6 +59,16 @@ correct(question7,answer7).
 correct(question8,answer8).
 correct(question9,answer9).
 correct(question10,answer10).
+correct(question11,answer11).
+correct(question12,answer12).
+correct(question13,answer13).
+correct(question14,answer14).
+correct(question15,answer15).
+correct(question16,answer16).
+correct(question17,answer17).
+correct(question18,answer18).
+correct(question19,answer19).
+correct(question20,answer20).
 :- write('Correspondences loaded.'), nl.
 
 /* Initialize Constant Predicates 
@@ -55,7 +85,8 @@ startE :> retract(game_state(_)),
           write('Game is started. Ready to Help!').
 
 /* Provide Help to Agent */
-helpE(A,Q) :> question(Q),
+helpE(A,Q) :> game_state(running),
+              question(Q),
               last_requested_question(Q1),
               Q1 \== Q,
               retract(last_requested_question(_)),
@@ -70,7 +101,8 @@ helpE(A,Q) :> question(Q),
               agent(Me),
               messageA(A, send_message(help_response(Answer,1), Me)).
 
-helpE(A,Q) :> question(Q),
+helpE(A,Q) :> game_state(running),
+              question(Q),
               last_requested_question(Q1),
               Q1 == Q,
               write('Help already requested for this question.'),

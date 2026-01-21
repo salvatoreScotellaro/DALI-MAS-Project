@@ -89,6 +89,11 @@ start_game :< game_state(waiting),
               write('Game is started!'), nl,
               retract(game_state(waiting)),
               assert(game_state(running)),
+              quiz_helper(H1,1),
+              quiz_helper(H2,2),
+              messageA(H1, send_message(start,Me)),
+              messageA(H2, send_message(start,Me)),
+              messageA(M, send_message(start(L),Me)),
               messageA(M, send_message(ask_question(L),Me)),
               now(T),
               retract(game_starting_time(_)),
@@ -136,6 +141,16 @@ updateE(A) :> points(A,P),
               write(P),
               write('.'), nl,
               check_endA(A,P1).
+
+/* If all participants answered wrong, go to next question */
+next_questionE :> write('Nobody answered correctly. Going to next question.'),
+                  now(T),
+                  master(M),
+                  participants(L),                 
+                  retract(question_starting_time(_)),
+                  assert(question_starting_time(T)),
+                  messageA(M, send_message(ask_question(L),Me)).
+
 
 /* Call Helper Agent if Help Available */
 helpE(A,Q,T) :> has_help(A,T),
