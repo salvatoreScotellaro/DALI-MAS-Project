@@ -113,8 +113,8 @@ helpE(A,Q) :> game_state(running),
 
 /* Change Game State when Game Ends */
 end_gameE :> retract(game_state(_)),
-        assert(game_state(finished)).
+        assert(game_state(finished)),
+        sleep_foreverA.
 
 /* Sleep Infinitely when Game Ends */
-game_stateI(finished) :> write('Game is over. Sleeping forever.'),
-                         sleep(10000000000000000). 
+sleep_forever :< write('Game is over. Sleeping forever.').

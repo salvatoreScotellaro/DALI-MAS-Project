@@ -11,6 +11,7 @@
 :- dynamic answered/1.
 :- dynamic question_not_answered/1.
 :- dynamic current_question/1.
+:- dynamic game_end_confirm/1.
 
 :- write('Master agent loading...'), nl.
 
@@ -97,21 +98,24 @@ participants([]).
 game_state(waiting).
 asked_questions([]).
 current_question(none).
+game_end_confirm([]).
 
 /* Declare Auxiliary Predicates */
 correct_answer(Q,A) :- question(Q), answer(A), correct(Q,A).
 available_questions(L) :- findall(Q, question(Q), L).
 available_answers(L) :- findall(A, answer(A), L).
+add(A,L1,L2) :- L2 = [A|L1]. 
 
 send_to_all([],_,_).
-send_to_all([A|T], Event, From) :- messageA(A,send_message(Event, From)),
+send_to_all([A|T], Event, From) :- agent(From), 
+                               messageA(A,send_message(Event, From)),
                                send_to_all(T, Event, From), 
                                write('Event sent to '),
                                write(A),
                                write(' as '),
                                write(Event),
                                write(' from '),
-                               write(From).
+                               write(From), nl.
 
 subtract_questions([],_,[]).
 subtract_questions([H|T],L2,R) :- member(H,L2), subtract_questions(T,L2,R).
@@ -206,14 +210,12 @@ next_question :- game_state(running),
                    messageA(N, send_message(next_question,Me),Me).
 
 /* End Game Notifying Winner and Other Players */
-end_gameE(A) :> write('Game is finished. Winner is '),
-                write(A),
+end_gameE(A) :> game_state(running),
+                write('Game is finished. Winner is '),
+                write(A), nl,
                 agent(Me),
                 participants(L),
                 send_to_all(L,end(A),Me),
                 retract(game_state(_)),
-                assert(game_state(finished)).
-
-/* Sleep Infinitely when Game Ends */
-game_stateI(finished) :> write('Game is over. Sleeping forever.'),
-                         sleep(10000000000000000). 
+                assert(game_state(finished)),
+                write('Game is over. Sleeping forever.'), nl.

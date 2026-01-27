@@ -8,6 +8,7 @@
 :- dynamic game_starting_time/1.
 :- dynamic question_starting_time/1.
 :- dynamic has_help/2.
+:- dynamic game_end_confirm/1.
 
 :- write('Notary agent loading...'), nl.
 
@@ -31,6 +32,7 @@ participants([]).
 game_state(waiting).
 game_starting_time(0).
 question_starting_time(0).
+game_end_confirm([]).
 
 /* Declare Auxiliary Predicates */
 add(A,L1,L2) :- L2 = [A|L1]. 
@@ -79,7 +81,7 @@ check_start_condition :< game_state(waiting),
 
 /* Write Game is already Finished */
 check_start_condition :< game_state(finished),
-                         write('Game is Finshed.').
+                         write('Game is Finished.'), nl.
 
 /* Tell Master Agent to Ask First Question */
 start_game :< game_state(waiting),
@@ -130,7 +132,8 @@ question_time_expiredI :> write('Question skipped due to Maximum Duration passed
                           messageA(M, send_message(ask_question(L),Me)).
 
 /* Update Players Points for Correct Answer and Start New Question */
-updateE(A) :> points(A,P),
+updateE(A) :> game_state(running),
+              points(A,P),
               P1 is P + 1,
               retract(points(A,P)),
               assert(points(A,P1)),
@@ -143,7 +146,8 @@ updateE(A) :> points(A,P),
               check_endA(A,P1).
 
 /* If all participants answered wrong, go to next question */
-next_questionE :> write('Nobody answered correctly. Going to next question.'),
+next_questionE :> game_state(running),
+                  write('Nobody answered correctly. Going to next question.'),
                   now(T),
                   master(M),
                   participants(L),                 
@@ -153,7 +157,8 @@ next_questionE :> write('Nobody answered correctly. Going to next question.'),
 
 
 /* Call Helper Agent if Help Available */
-helpE(A,Q,T) :> has_help(A,T),
+helpE(A,Q,T) :> game_state(running), 
+              has_help(A,T),
               retract(has_help(A,T)),
               write('Calling helper agent '),
               write(T),
@@ -165,13 +170,15 @@ helpE(A,Q,T) :> has_help(A,T),
               agent(Me),
               messageA(H, send_message(help(A,Q), Me)).
 
-helpE(A,Q,T) :> \+ has_help(A,T),
+helpE(A,Q,T) :> game_state(running),
+                \+ has_help(A,T),
                 write('Help of type '),
                 write(T),
                 write(' already used by '),
                 write(A).
 
-help_overlapE(A) :> assert(has_help(A,1)),
+help_overlapE(A) :> game_state(running),
+                    assert(has_help(A,1)),
                     write('Type 1 hint refound to '),
                     write(A),
                     write(' due to overlap.').
@@ -206,8 +213,5 @@ end_game(A,P) :< write('Winner is '),
                messageA(H1, send_message(end_game,Me)),
                messageA(H2, send_message(end_game,Me)),
                retract(game_state(_)),
-               assert(game_state(finished)).
-
-/* Sleep Infinitely when Game Ends */
-game_stateI(finished) :> write('Game is over. Sleeping forever.'),
-                         sleep(10000000000000000). 
+               assert(game_state(finished)),
+               write('Game is over. Sleeping forever.'), nl.

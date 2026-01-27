@@ -75,8 +75,10 @@ correct(question20,answer20).
 :- write('Correspondences loaded.'), nl.
 
 /* Initialize Constant Predicates
-    - Number of Reduced Answers */
+    - Number of Reduced Answers 
+    - Notary Agent Name */
 reduced_answers_num(2).
+notary(notary).
 
 /* Initialize Dynamic Predicates */
 game_state(waiting).
@@ -123,8 +125,8 @@ helpE(A,Q) :> game_state(running),
 
 /* Change Game State when Game Ends */
 end_gameE :> retract(game_state(_)),
-        assert(game_state(finished)).
+        assert(game_state(finished)),
+        sleep_foreverA.
 
 /* Sleep Infinitely when Game Ends */
-game_stateI(finished) :> write('Game is over. Sleeping forever.'),
-                         sleep(10000000000000000). 
+sleep_forever :< write('Game is over. Sleeping forever.').
